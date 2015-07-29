@@ -1,6 +1,6 @@
 <?php
 
-// 浮き沈みリンク集
+// 浮き沈みリンク集 ver1.01
 //
 //  これ単体では動きません。
 //  別途これを呼び出すPHPを用意して、
@@ -10,6 +10,7 @@
 //   $setting['filename'] (データを入れるファイル)
 //   $setting['imgdir']   (バナーのあるディレクトリ。省略可)
 //   $setting['password'] (パスワード。省略可)
+//   $setting['tagsort']  (タグを並び替えるか。省略可)
 //  を設定して、
 //   Main();
 //  を呼び出すことで初めて動きます。
@@ -52,6 +53,11 @@ function MainPage()	// 通常表示
 	print <<<END
 <p style="text-align:right;font-size:80%">
 END;
+	if ($setting['tagsort'])	// 1.01で追加
+	{
+		ksort($tagdata);
+		reset($tagdata);
+	}
 	foreach ($tagdata as $tag => $num) {
 		$tagurl = urlencode($tag);
 		if ($tag != $find) {
