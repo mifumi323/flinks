@@ -1,6 +1,6 @@
 <?php
 
-// 浮き沈みリンク集 ver1.03
+// 浮き沈みリンク集 ver1.04
 //
 //  これ単体では動きません。
 //  別途これを呼び出すPHPを用意して、
@@ -8,7 +8,7 @@
 //  でこのスクリプトを読み込み、
 //   $setting['script']   (スクリプトのファイル名)
 //   $setting['filename'] (データを入れるファイル)
-//   $setting['imgdir']   (バナーのあるディレクトリ。省略可)
+//   $setting['imgdir']   (バナーのあるディレクトリ。省略可。1.04より配列可)
 //   $setting['password'] (パスワード。省略可)
 //   $setting['tagsort']  (1.01より。タグを並び替えるか。省略可)
 //   $setting['combobox'] (1.02より。タグをコンボボックスで表示するか。省略可)
@@ -126,7 +126,7 @@ END;
 <form action="$setting[script]" method=POST name=b style="text-align:center;">
 <input type=hidden name=query value="$query">
 <table cellspacing=0 cellpadding=0 border=0 align=right>
-<tr><td>名前/画像</td><td><input type=text name=name title"画像可"></td></tr>
+<tr><td>名前/画像</td><td><input type=text name=name title="画像可"></td></tr>
 <tr><td>URL</td><td><input type=text name=url title="「http://」以外で始まるURLは不可"></td></tr>
 <tr><td>タグ</td><td><input type=text name=tag title="「,」で区切る"></td></tr>
 $passform
@@ -144,10 +144,8 @@ END;
 			}
 			if (!$found) continue;
 		}
-		$banner = is_file($setting['imgdir'].$link['name'])?
-			"<img src=\"$setting[imgdir]$link[name]\">":
-			(strpos($link['name'],'://')?
-			"<img src=\"$link[name]\">":$link['name']);
+		$imgfile = TryGetImage($link['name']);	// 1.04で変更
+		$banner = isset($imgfile)?"<img src=\"$imgfile\">":$link['name'];	// 1.04で変更
 		$tag = implode(',',$link['tag']);
 		$name = str_replace("'","\\'",$link['name']);
 		print <<<END
@@ -328,6 +326,32 @@ function Unlock($forceunlock=false)	// ロックしていたらロック解除する(1.03で追加
 	if (!$lockfile) return;
 	if (is_dir($lockfile)) rmdir($lockfile);
 	$is_locked = false;
+}
+
+//--ここから先は1.04から追加--//
+
+function TryGetImage($filename, $imgdir=NULL)	// 画像取得(失敗したらNULL)
+{
+	if (strpos($filename,'://')) {
+		return $filename;
+	}
+	if (!isset($imgdir)) {
+		global $setting;
+		$imgdir = $setting['imgdir'];
+	}
+	if (is_array($imgdir)) {
+		foreach ($imgdir as $dir) {
+			$file = TryGetImage($filename, $dir);
+			if (isset($file)) return $file;
+		}
+		return NULL;
+	}else {
+		if (is_file($imgdir.$filename)) {
+			return $imgdir.$filename;
+		}else {
+			return NULL;
+		}
+	}
 }
 
 ?>
