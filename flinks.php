@@ -1,6 +1,6 @@
 <?php
 
-// 浮き沈みリンク集 ver1.02
+// 浮き沈みリンク集 ver1.03
 //
 //  これ単体では動きません。
 //  別途これを呼び出すPHPを用意して、
@@ -10,8 +10,9 @@
 //   $setting['filename'] (データを入れるファイル)
 //   $setting['imgdir']   (バナーのあるディレクトリ。省略可)
 //   $setting['password'] (パスワード。省略可)
-//   $setting['tagsort']  (タグを並び替えるか。省略可)
-//   $setting['combobox'] (タグをコンボボックスで表示するか。省略可)
+//   $setting['tagsort']  (1.01より。タグを並び替えるか。省略可)
+//   $setting['combobox'] (1.02より。タグをコンボボックスで表示するか。省略可)
+//   $setting['lockfile'] (1.03より。ファイルロックのための一時ファイル。省略可)
 //  を設定して、
 //   Main();
 //  を呼び出すことで初めて動きます。
@@ -161,12 +162,14 @@ END;
 function Score()	// ランク付け
 {
 	global $setting, $_REQUEST;
+	if (!Lock()) die('エラー：ロック失敗');	// 1.03で追加
 	$alldata = ReadLinks($setting['filename']);
 	$linkdata = $alldata['link'];
 	$query = stripslashes($_REQUEST['query']);
 	if ($query!='') $query="?$query";
 	ScoreLink($linkdata, $_REQUEST['id']);
 	WriteLinks($setting['filename'], $linkdata);
+	Unlock();	// 1.03で追加
 	header("Location: $setting[script]$query");
 }
 
@@ -177,6 +180,7 @@ function Put()	// 追加・修正
 	$query = stripslashes($_REQUEST['query']);
 	if ($query!='') $query="?$query";
 	if ($_REQUEST['name']!='' && $_REQUEST['url']!='') {
+		if (!Lock()) die('エラー：ロック失敗');	// 1.03で追加
 		$alldata = ReadLinks($setting['filename']);
 		$linkdata = $alldata['link'];
 		$tagdata = $alldata['tag'];
@@ -188,6 +192,7 @@ function Put()	// 追加・修正
 			);
 		PutLink($linkdata, $new);
 		WriteLinks($setting['filename'], $linkdata);
+		Unlock();	// 1.03で追加
 	}
 	header("Location: $setting[script]$query");
 }
@@ -199,11 +204,13 @@ function Remove()	// 削除
 	$query = stripslashes($_REQUEST['query']);
 	if ($query!='') $query="?$query";
 	if ($_REQUEST['id']>0) {
+		if (!Lock()) die('エラー：ロック失敗');	// 1.03で追加
 		$alldata = ReadLinks($setting['filename']);
 		$linkdata = $alldata['link'];
 		$tagdata = $alldata['tag'];
 		RemoveLink($linkdata, $_REQUEST['id']);
 		WriteLinks($setting['filename'], $linkdata);
+		Unlock();	// 1.03で追加
 	}
 	header("Location: $setting[script]$query");
 }
@@ -294,4 +301,33 @@ function DifferentID($var)	// IDが異なるかどうかを判定
 	global $removeid;
 	return $var['id']!=$removeid;
 }
+
+//--ここから先は1.03から追加--//
+
+function Lock()	// ロックする(成功時true、1.03で追加)
+{
+	global $setting, $is_locked;
+	$lockfile = $setting['lockfile'];
+	if (!$lockfile) return true;
+	clearstatcache();
+	// PHPはデフォルトで30秒でタイムアウトするので通常の実行で60秒以上前のロックファイルが残ることはない(=以前に異常終了した)
+	if (is_dir($lockfile) && time()-filemtime($lockfile)>60) Unlock(true);
+	$retry = 5;
+	while (!@mkdir($lockfile, 0755)) {
+		if (--$retry <= 0) return false;
+		sleep(1);
+	}
+	return $is_locked=true;
+}
+
+function Unlock($forceunlock=false)	// ロックしていたらロック解除する(1.03で追加)
+{
+	global $setting, $is_locked;
+	if (!$is_locked&&!$forceunlock) return;
+	$lockfile = $setting['lockfile'];
+	if (!$lockfile) return;
+	if (is_dir($lockfile)) rmdir($lockfile);
+	$is_locked = false;
+}
+
 ?>
