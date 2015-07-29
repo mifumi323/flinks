@@ -1,6 +1,6 @@
 <?php
 
-// 浮き沈みリンク集 ver1.01
+// 浮き沈みリンク集 ver1.02
 //
 //  これ単体では動きません。
 //  別途これを呼び出すPHPを用意して、
@@ -11,6 +11,7 @@
 //   $setting['imgdir']   (バナーのあるディレクトリ。省略可)
 //   $setting['password'] (パスワード。省略可)
 //   $setting['tagsort']  (タグを並び替えるか。省略可)
+//   $setting['combobox'] (タグをコンボボックスで表示するか。省略可)
 //  を設定して、
 //   Main();
 //  を呼び出すことで初めて動きます。
@@ -50,9 +51,17 @@ function MainPage()	// 通常表示
 	$find = stripslashes($_REQUEST['tag']);
 	$query = stripslashes($_SERVER['QUERY_STRING']);
 	$query2 = urlencode($query);
-	print <<<END
-<p style="text-align:right;font-size:80%">
+	if ($setting['combobox'])	// 1.02で追加
+	{
+		print <<<END
+<form action="$setting[script]" method="get" style="text-align:right;">
+<select name=tag>
 END;
+	}else {
+		print <<<END
+<p style="text-align:right;font-size:80%;">
+END;
+	}
 	if ($setting['tagsort'])	// 1.01で追加
 	{
 		ksort($tagdata);
@@ -61,24 +70,54 @@ END;
 	foreach ($tagdata as $tag => $num) {
 		$tagurl = urlencode($tag);
 		if ($tag != $find) {
-			print <<<END
+			if ($setting['combobox'])	// 1.02で追加
+			{
+				print <<<END
+<option value="$tag">$tag($num)</option>
+END;
+			}else {
+				print <<<END
 <nobr><a href="{$setting[script]}?tag={$tagurl}">$tag($num)</a></nobr>/
 END;
+			}
 		}else {
-			print <<<END
+			if ($setting['combobox'])	// 1.02で追加
+			{
+				print <<<END
+<option value="$tag" selected>$tag($num)</option>
+END;
+			}else {
+				print <<<END
 <nobr><b>$tag($num)</b></nobr>/
 END;
+			}
 		}
 	}
 	$num = count($linkdata);
 	if ($find=='') {
-		print <<<END
+		if ($setting['combobox'])	// 1.02で追加
+		{
+			print <<<END
+<option value="" selected>すべて($num)</option>
+</select><input type=submit value="表示"></form>
+END;
+		}else {
+			print <<<END
 <nobr><b>すべて($num)</b></nobr></p>
 END;
+		}
 	}else {
-		print <<<END
+		if ($setting['combobox'])	// 1.02で追加
+		{
+			print <<<END
+<option value="">すべて($num)</option>
+</select><input type=submit value="表示"></form>
+END;
+		}else {
+			print <<<END
 <nobr><a href="$setting[script]">すべて($num)</a></nobr></p>
 END;
+		}
 	}
 	if ($setting['password']!='') $passform =
 		'<tr><td>password</td><td><input type=password name=pass></td></tr>';
