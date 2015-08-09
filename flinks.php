@@ -1,6 +1,6 @@
 <?php
 
-// 浮き沈みリンク集 ver1.04
+// 浮き沈みリンク集 ver1.05
 //
 //  これ単体では動きません。
 //  別途これを呼び出すPHPを用意して、
@@ -52,7 +52,7 @@ function MainPage()	// 通常表示
 	$find = stripslashes($_REQUEST['tag']);
 	$query = stripslashes($_SERVER['QUERY_STRING']);
 	$query2 = urlencode($query);
-	if ($setting['combobox'])	// 1.02で追加
+	if ($setting['combobox'])
 	{
 		print <<<END
 <form action="$setting[script]" method="get" style="text-align:right;">
@@ -63,7 +63,7 @@ END;
 <p style="text-align:right;font-size:80%;">
 END;
 	}
-	if ($setting['tagsort'])	// 1.01で追加
+	if ($setting['tagsort'])
 	{
 		ksort($tagdata);
 		reset($tagdata);
@@ -71,7 +71,7 @@ END;
 	foreach ($tagdata as $tag => $num) {
 		$tagurl = urlencode($tag);
 		if ($tag != $find) {
-			if ($setting['combobox'])	// 1.02で追加
+			if ($setting['combobox'])
 			{
 				print <<<END
 <option value="$tag">$tag($num)</option>
@@ -82,7 +82,7 @@ END;
 END;
 			}
 		}else {
-			if ($setting['combobox'])	// 1.02で追加
+			if ($setting['combobox'])
 			{
 				print <<<END
 <option value="$tag" selected>$tag($num)</option>
@@ -96,7 +96,7 @@ END;
 	}
 	$num = count($linkdata);
 	if ($find=='') {
-		if ($setting['combobox'])	// 1.02で追加
+		if ($setting['combobox'])
 		{
 			print <<<END
 <option value="" selected>すべて($num)</option>
@@ -108,7 +108,7 @@ END;
 END;
 		}
 	}else {
-		if ($setting['combobox'])	// 1.02で追加
+		if ($setting['combobox'])
 		{
 			print <<<END
 <option value="">すべて($num)</option>
@@ -127,7 +127,7 @@ END;
 <input type=hidden name=query value="$query">
 <table cellspacing=0 cellpadding=0 border=0 align=right>
 <tr><td>名前/画像</td><td><input type=text name=name title="画像可"></td></tr>
-<tr><td>URL</td><td><input type=text name=url title="「http://」以外で始まるURLは不可"></td></tr>
+<tr><td>URL</td><td><input type=text name=url title="「http://」は省略可能"></td></tr>
 <tr><td>タグ</td><td><input type=text name=tag title="「,」で区切る"></td></tr>
 $passform
 <tr><td><input type=radio name=id value=0 onclick="document.b.name.value='';document.b.url.value='';document.b.tag.value='';" checked>新規</td><td><select name=mode><option value=put>追加/修正</option><option value=remove>削除</option></select><input type=submit value="OK"></td></tr>
@@ -144,12 +144,14 @@ END;
 			}
 			if (!$found) continue;
 		}
-		$imgfile = TryGetImage($link['name']);	// 1.04で変更
-		$banner = isset($imgfile)?"<img src=\"$imgfile\">":$link['name'];	// 1.04で変更
+		$imgfile = TryGetImage($link['name']);
+		$banner = isset($imgfile)?"<img src=\"$imgfile\">":$link['name'];
 		$tag = implode(',',$link['tag']);
 		$name = str_replace("'","\\'",$link['name']);
+		$url = $link['url'];
+		if (strpos($url,'://')===false) $url = 'http://'.$url;
 		print <<<END
-<nobr><input type=radio name=id value=$link[id] onclick="document.b.name.value='$name';document.b.url.value='$link[url]';document.b.tag.value='$tag';"><a href="http://$link[url]" name=$link[id] onclick="window.open('http://$link[url]','_blank');location.href='$setting[script]?mode=score&amp;id=$link[id]&amp;query=$query2';return false;" title="$tag,$link[score]">$banner</a></nobr>
+<nobr><input type=radio name=id value=$link[id] onclick="document.b.name.value='$name';document.b.url.value='$url';document.b.tag.value='$tag';"><a href="$url" name=$link[id] onclick="window.open('$url','_blank');location.href='$setting[script]?mode=score&amp;id=$link[id]&amp;query=$query2';return false;" title="$tag,$link[score]">$banner</a></nobr>
 END;
 	}
 ?>
@@ -160,14 +162,14 @@ END;
 function Score()	// ランク付け
 {
 	global $setting, $_REQUEST;
-	if (!Lock()) die('エラー：ロック失敗');	// 1.03で追加
+	if (!Lock()) die('エラー：ロック失敗');
 	$alldata = ReadLinks($setting['filename']);
 	$linkdata = $alldata['link'];
 	$query = stripslashes($_REQUEST['query']);
 	if ($query!='') $query="?$query";
 	ScoreLink($linkdata, $_REQUEST['id']);
 	WriteLinks($setting['filename'], $linkdata);
-	Unlock();	// 1.03で追加
+	Unlock();
 	header("Location: $setting[script]$query");
 }
 
@@ -178,7 +180,7 @@ function Put()	// 追加・修正
 	$query = stripslashes($_REQUEST['query']);
 	if ($query!='') $query="?$query";
 	if ($_REQUEST['name']!='' && $_REQUEST['url']!='') {
-		if (!Lock()) die('エラー：ロック失敗');	// 1.03で追加
+		if (!Lock()) die('エラー：ロック失敗');
 		$alldata = ReadLinks($setting['filename']);
 		$linkdata = $alldata['link'];
 		$tagdata = $alldata['tag'];
@@ -190,7 +192,7 @@ function Put()	// 追加・修正
 			);
 		PutLink($linkdata, $new);
 		WriteLinks($setting['filename'], $linkdata);
-		Unlock();	// 1.03で追加
+		Unlock();
 	}
 	header("Location: $setting[script]$query");
 }
@@ -202,13 +204,13 @@ function Remove()	// 削除
 	$query = stripslashes($_REQUEST['query']);
 	if ($query!='') $query="?$query";
 	if ($_REQUEST['id']>0) {
-		if (!Lock()) die('エラー：ロック失敗');	// 1.03で追加
+		if (!Lock()) die('エラー：ロック失敗');
 		$alldata = ReadLinks($setting['filename']);
 		$linkdata = $alldata['link'];
 		$tagdata = $alldata['tag'];
 		RemoveLink($linkdata, $_REQUEST['id']);
 		WriteLinks($setting['filename'], $linkdata);
-		Unlock();	// 1.03で追加
+		Unlock();
 	}
 	header("Location: $setting[script]$query");
 }
@@ -300,9 +302,7 @@ function DifferentID($var)	// IDが異なるかどうかを判定
 	return $var['id']!=$removeid;
 }
 
-//--ここから先は1.03から追加--//
-
-function Lock()	// ロックする(成功時true、1.03で追加)
+function Lock()	// ロックする(成功時true)
 {
 	global $setting, $is_locked;
 	$lockfile = $setting['lockfile'];
@@ -318,7 +318,7 @@ function Lock()	// ロックする(成功時true、1.03で追加)
 	return $is_locked=true;
 }
 
-function Unlock($forceunlock=false)	// ロックしていたらロック解除する(1.03で追加)
+function Unlock($forceunlock=false)	// ロックしていたらロック解除する
 {
 	global $setting, $is_locked;
 	if (!$is_locked&&!$forceunlock) return;
@@ -327,8 +327,6 @@ function Unlock($forceunlock=false)	// ロックしていたらロック解除する(1.03で追加
 	if (is_dir($lockfile)) rmdir($lockfile);
 	$is_locked = false;
 }
-
-//--ここから先は1.04から追加--//
 
 function TryGetImage($filename, $imgdir=NULL)	// 画像取得(失敗したらNULL)
 {
